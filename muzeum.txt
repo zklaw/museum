@@ -1,0 +1,153 @@
+#include <reg51.h>
+// <at89x52.h>
+#include <absacc.h>
+#include <LCD_lib.c>
+//Enter i strzalka w gore - bramki wejsciowe
+//ESC i strzalka w dol - bramki wyjsciowe
+
+sbit przycisk = P3^5; //zmienna odpowiadajaca za wcisniecie klawisza, gdzies w necie takie cos znalazlam
+sbit LED = P1^6; //zmienna odpowiadajaca za podswietlenie wyswietlacza
+unsigned char liczba[10]={0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F}; //kody na kazda cyfre na wyswietlacz
+int i, j, flaga;
+unsigned char text_max[]="Liczba miejsc\n ograniczona...";
+unsigned char text_hard_max[]="Prosze nie\n wchodzic!";
+unsigned char licznik, down, up, max, hard_max;
+
+typedef struct nr{
+	unsigned char jednosci, dziesiatki, setki;
+}nr;
+
+void wyswietlanie_cyfr(unsigned char kostka, unsigned char cyfra){
+	XBYTE[0xF030]=kostka; //zapis na ktorej kostce wyswietlacza ma byc wyswietlana cyfra
+	XBYTE[0xF038]=liczba[cyfra]; //wprowadzenie cyfry na pole wskazane wyzej
+	LED=0;
+	do{
+	i++;
+}while(i!=100);
+i=0;
+LED=1;
+}
+
+nr rozdziel_elementy(unsigned char cyfra){
+    nr wynik;
+    wynik.setki = cyfra/100;
+    wynik.dziesiatki = (cyfra - wynik.setki*100)/10;
+    wynik.jednosci = cyfra - wynik.dziesiatki * 10 - wynik.setki*100;
+    
+    return wynik;
+}
+
+void wyswietlanie(nr cyfra){
+    wyswietlanie_cyfr(4, cyfra.setki);
+    wyswietlanie_cyfr(2, cyfra.dziesiatki);
+    wyswietlanie_cyfr(1, cyfra.jednosci);
+}
+
+void finalne_wyswietlanie(unsigned char cyfra){
+	wyswietlanie(rozdziel_elementy(cyfra));
+}
+
+main(){
+	licznik = 0;
+	max = 5;
+	hard_max = 10;
+	
+	while(1){ //wieczna petla
+	przycisk=0;
+	LED=1;
+	finalne_wyswietlanie(licznik); //wyswietla nam sie licznik na wyswietlaczu
+
+		if(licznik<=max){
+			lcd_clr();
+			flaga=0;
+		}
+		if(licznik>max && licznik<=hard_max && flaga==2){
+			lcd_clr();
+			for(j=0;text_max[j];j++){
+					lcd(text_max[j]);
+					wait(250);
+					}
+			flaga=1;
+		}
+		
+		XBYTE[0xF030]=0x08; //wczytanie klawisza strzalka w gore
+		if(przycisk){ //gdy jest wcisniety
+			if(!up){
+						licznik++;
+						for(i=0;i<100;i++){}
+						
+				}
+		}
+		XBYTE[0xF030]=0x09; //wczytanie klawisza enter 
+		if(przycisk){ //gdy jest wcisniety
+			if(!up){
+						licznik++;
+						for(i=0;i<100;i++){}
+						
+				}
+		}
+		
+		XBYTE[0xF030]=0x10; //wczytanie klawisza strzalka w dol
+		if(przycisk){
+			if(!down){
+						if(licznik>0){
+								licznik--;
+							for(i=0;i<100;i++){}
+						}
+				}
+			}
+			
+		XBYTE[0xF030]=0x02; //wczytanie klawisza ESC
+		if(przycisk){
+			if(!down){
+						if(licznik>0){
+								licznik--;
+							for(i=0;i<100;i++){}
+						}
+				}
+			}
+			
+		if(licznik>max && flaga==0){
+			flaga=1;
+			lcd_init();		
+				for(j=0;text_max[j];j++){
+					lcd(text_max[j]);
+					wait(250);
+				}
+				//lcd_clr();
+		}
+	
+			if(licznik>hard_max && flaga==1){
+				lcd_clr();
+					for(j=0;text_hard_max[j];j++){
+					lcd(text_hard_max[j]);
+					wait(250);
+					}
+					//lcd_clr();
+					flaga=2;
+			}
+	}
+}
+
+
+/*
+unsigned char setki(unsigned char cyfra){
+unsigned char setki;
+setki = cyfra/100;
+return setki;
+}
+unsigned char dziesiatki(unsigned char cyfra){
+unsigned char setki, dziesiatki;
+setki = cyfra/100;
+dziesiatki = (cyfra - setki*100)/10;
+return dziesiatki;
+}
+unsigned char jednosci(unsigned char cyfra){
+unsigned char setki, dziesiatki, jednosci;
+setki = cyfra/100;
+dziesiatki = (cyfra - setki*100)/10;
+jednosci=(cyfra - setki*100 - dziesiatki*10);
+return jednosci;
+}*/
+
+
